@@ -261,7 +261,7 @@
 
     if (!raw.trim()) {
       errEl.textContent = "";
-      out.innerHTML = '<p class="empty">Start typing a word — e.g. APPLE, BANANA, STRING.</p>';
+      out.innerHTML = '<p class="empty">Start typing a word — e.g. MATHS, BANANA, STRING.</p>';
       return;
     }
     var bad = w.match(/[^A-Z]/);
@@ -367,7 +367,7 @@
     render();
   });
 
-  input.value = "APPLE";
+  input.value = "";
   render();
 })();
 </script>
