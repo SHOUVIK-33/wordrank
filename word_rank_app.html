@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rank of a Word — Dictionary Rank using PnC</title>
+<style>
+  :root{
+    --bg:#0b0d14;
+    --card:#141826;
+    --card2:#1b2033;
+    --line:#272d42;
+    --txt:#e8ecf6;
+    --muted:#8f9ab5;
+    --accent:#7c6cff;
+    --accent2:#22d3a6;
+    --warn:#ff8a6b;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(900px 500px at 15% -10%, rgba(124,108,255,.22), transparent 60%),
+      radial-gradient(700px 400px at 95% 0%, rgba(34,211,166,.13), transparent 55%),
+      var(--bg);
+    color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:880px;margin:0 auto;padding:28px 18px 60px}
+  header h1{
+    font-size:clamp(22px,5vw,32px);
+    margin:0 0 6px;
+    letter-spacing:-.02em;
+    font-weight:700;
+  }
+  header h1 span{color:var(--accent)}
+  header p{margin:0;color:var(--muted);font-size:14px;line-height:1.5}
+  .badge{
+    display:inline-block;margin-bottom:14px;padding:5px 11px;border-radius:999px;
+    background:rgba(124,108,255,.14);border:1px solid rgba(124,108,255,.35);
+    color:#c3bbff;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;
+  }
+
+  .inputbar{
+    margin:22px 0 8px;display:flex;gap:10px;align-items:stretch;
+  }
+  #word{
+    flex:1;min-width:0;
+    background:var(--card);border:1px solid var(--line);border-radius:14px;
+    color:var(--txt);font-size:20px;letter-spacing:.22em;font-weight:600;
+    padding:16px 18px;outline:none;text-transform:uppercase;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  #word::placeholder{color:#4d5670;letter-spacing:.12em;font-weight:400}
+  #word:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(124,108,255,.16)}
+  #clear{
+    background:var(--card);border:1px solid var(--line);color:var(--muted);
+    border-radius:14px;padding:0 16px;font-size:14px;cursor:pointer;font-weight:600;
+  }
+  #clear:hover{color:var(--txt);border-color:#3a4260}
+  .hint{color:#6b7590;font-size:12.5px;margin:0 0 20px}
+  .err{color:var(--warn);font-size:13px;margin:0 0 16px;min-height:0}
+
+  .hero{
+    background:linear-gradient(160deg,var(--card2),var(--card));
+    border:1px solid var(--line);border-radius:18px;padding:22px;
+    display:flex;flex-wrap:wrap;gap:18px;align-items:center;justify-content:space-between;
+  }
+  .hero .label{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .rank{
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:clamp(30px,9vw,46px);font-weight:700;line-height:1.05;
+    color:var(--accent2);word-break:break-all;margin-top:4px;
+  }
+  .total{text-align:right}
+  .of{color:var(--muted);font-size:13px;margin-top:6px}
+  .of b{color:#cfd6ea;font-family:ui-monospace,monospace;font-weight:600}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:14px 0 0}
+  .cell{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .cell .k{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:7px}
+  .cell .v{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:16px;color:#dfe5f4;word-break:break-all;line-height:1.5}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{
+    background:rgba(124,108,255,.14);border:1px solid rgba(124,108,255,.3);
+    border-radius:8px;padding:3px 8px;font-family:ui-monospace,monospace;font-size:13px;color:#cfc9ff;
+  }
+
+  h2{font-size:14px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);
+     margin:34px 0 12px;font-weight:700}
+  .step{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:10px}
+  .step .top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+  .step .pos{font-size:13px;color:var(--muted)}
+  .step .pos b{color:var(--txt);font-family:ui-monospace,monospace;font-size:15px}
+  .step .add{font-family:ui-monospace,monospace;font-size:13px;color:var(--accent2)}
+  .blocks{margin-top:10px;display:flex;flex-direction:column;gap:7px}
+  .blk{
+    display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;
+    font-family:ui-monospace,monospace;font-size:13px;color:#aab3cc;
+    background:var(--card2);border-radius:9px;padding:8px 11px;
+  }
+  .blk .f{color:#8e97b3}
+  .blk .n{color:#dfe5f4;font-weight:600}
+  .none{font-size:13px;color:#6b7590;margin-top:8px}
+  .running{margin-top:9px;font-size:12.5px;color:var(--muted)}
+  .running b{color:#cfd6ea;font-family:ui-monospace,monospace}
+
+  .neigh{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .neigh .cell .v{color:#b9c2da}
+  .neigh .cell.hl .v{color:var(--accent2);font-weight:700}
+
+  details{margin-top:30px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  summary{cursor:pointer;font-size:13px;color:var(--muted);font-weight:600;letter-spacing:.04em}
+  summary:hover{color:var(--txt)}
+  .allperm{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;max-height:260px;overflow:auto}
+  .p{font-family:ui-monospace,monospace;font-size:12.5px;padding:3px 7px;border-radius:7px;background:var(--card2);color:#9aa4bf}
+  .p.hit{background:rgba(34,211,166,.18);border:1px solid rgba(34,211,166,.5);color:#7bf0cd;font-weight:700}
+  .p .i{color:#5d6683;margin-right:5px;font-size:11px}
+
+  .formula{margin-top:26px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .formula p{margin:0 0 10px;font-size:13.5px;color:#a9b2c9;line-height:1.65}
+  .formula code{
+    font-family:ui-monospace,monospace;background:var(--card2);border-radius:6px;
+    padding:2px 7px;color:#cfc9ff;font-size:13px;
+  }
+  footer{margin-top:34px;color:#5b6480;font-size:11.5px;text-align:center}
+  .empty{color:#6b7590;font-size:13.5px;padding:18px 0}
+  @media (max-width:520px){
+    .hero{padding:18px}
+    .neigh{grid-template-columns:1fr}
+    .total{text-align:left;margin-top:6px;padding-top:12px;border-top:1px solid var(--line);width:100%}
+    #word{font-size:17px;padding:14px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="badge">Permutations &amp; Combinations</div>
+    <h1>Rank of a <span>Word</span></h1>
+    <p>Type any word. Its letters are sorted a→z, every arrangement is listed alphabetically, and this shows the word's position in that dictionary.</p>
+  </header>
+
+  <div class="inputbar">
+    <input id="word" type="text" placeholder="TYPE A WORD" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="40">
+    <button id="clear" type="button">Clear</button>
+  </div>
+  <p class="hint">Letters only · case doesn't matter · repeated letters handled</p>
+  <p class="err" id="err"></p>
+
+  <div id="out"></div>
+
+  <div class="formula">
+    <p><b>How the rank is built.</b> At each position, count the smaller letters still unused. For each one, the rest of the word can be arranged in
+      <code>(remaining)! / (repeated letters)!</code> ways — that whole block comes before our word.</p>
+    <p>Add up every such block, then add 1 for the word itself. That is its rank.</p>
+  </div>
+
+  <footer>Rank of a Word · v1.0</footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var FACT = [1n];
+  for (var i = 1; i <= 60; i++) FACT[i] = FACT[i - 1] * BigInt(i);
+
+  function countsOf(w) {
+    var c = new Array(26).fill(0);
+    for (var i = 0; i < w.length; i++) c[w.charCodeAt(i) - 65]++;
+    return c;
+  }
+  function totalOf(c) { var s = 0; for (var i = 0; i < 26; i++) s += c[i]; return s; }
+  function arrangements(c) {
+    var res = FACT[totalOf(c)];
+    for (var i = 0; i < 26; i++) if (c[i] > 1) res /= FACT[c[i]];
+    return res;
+  }
+  function formulaOf(c) {
+    var s = totalOf(c) + "!";
+    var den = [];
+    for (var i = 0; i < 26; i++) if (c[i] > 1) den.push(c[i] + "!");
+    if (den.length) s += " / (" + den.join(" * ") + ")";
+    return s;
+  }
+  function fmt(n) { return n.toString(); }
+
+  function analyse(w) {
+    var cnt = countsOf(w);
+    var steps = [];
+    var rank = 1n;
+    for (var i = 0; i < w.length; i++) {
+      var cur = w.charCodeAt(i) - 65;
+      var blocks = [];
+      for (var c = 0; c < cur; c++) {
+        if (!cnt[c]) continue;
+        cnt[c]--;
+        blocks.push({
+          letter: String.fromCharCode(65 + c),
+          formula: formulaOf(cnt),
+          remaining: totalOf(cnt),
+          count: arrangements(cnt)
+        });
+        cnt[c]++;
+      }
+      var added = 0n;
+      for (var b = 0; b < blocks.length; b++) added += blocks[b].count;
+      rank += added;
+      cnt[cur]--;
+      steps.push({ pos: i + 1, letter: w[i], blocks: blocks, added: added, running: rank });
+    }
+    return { rank: rank, steps: steps, total: arrangements(countsOf(w)), counts: countsOf(w) };
+  }
+
+  function kth(counts, k) {
+    var cnt = counts.slice();
+    var n = totalOf(cnt), out = "";
+    for (var p = 0; p < n; p++) {
+      for (var c = 0; c < 26; c++) {
+        if (!cnt[c]) continue;
+        cnt[c]--;
+        var block = arrangements(cnt);
+        if (k > block) { k -= block; cnt[c]++; }
+        else { out += String.fromCharCode(65 + c); break; }
+      }
+    }
+    return out;
+  }
+
+  function allPerms(w) {
+    var cnt = countsOf(w), n = w.length, out = [];
+    var cur = "";
+    (function rec() {
+      if (cur.length === n) { out.push(cur); return; }
+      for (var c = 0; c < 26; c++) {
+        if (!cnt[c]) continue;
+        cnt[c]--; cur += String.fromCharCode(65 + c);
+        rec();
+        cur = cur.slice(0, -1); cnt[c]++;
+      }
+    })();
+    return out;
+  }
+
+  var input = document.getElementById("word");
+  var out = document.getElementById("out");
+  var errEl = document.getElementById("err");
+
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (m) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[m];
+    });
+  }
+
+  function render() {
+    var raw = input.value;
+    var w = raw.toUpperCase().replace(/\s+/g, "");
+
+    if (!raw.trim()) {
+      errEl.textContent = "";
+      out.innerHTML = '<p class="empty">Start typing a word — e.g. APPLE, BANANA, STRING.</p>';
+      return;
+    }
+    var bad = w.match(/[^A-Z]/);
+    if (bad) {
+      errEl.textContent = "'" + bad[0] + "' is not a letter. Only A–Z allowed.";
+      out.innerHTML = "";
+      return;
+    }
+    errEl.textContent = "";
+    if (w.length > 26) {
+      errEl.textContent = "Please keep it to 26 letters or fewer.";
+      out.innerHTML = "";
+      return;
+    }
+
+    var r = analyse(w);
+    var cnt = r.counts;
+
+    var sorted = "";
+    var chips = "";
+    for (var c = 0; c < 26; c++) {
+      for (var k = 0; k < cnt[c]; k++) sorted += String.fromCharCode(65 + c);
+      if (cnt[c]) chips += '<span class="chip">' + String.fromCharCode(65 + c) + " × " + cnt[c] + "</span>";
+    }
+
+    var html = "";
+
+    html += '<div class="hero">';
+    html += '  <div>';
+    html += '    <div class="label">Rank of ' + esc(w) + '</div>';
+    html += '    <div class="rank">' + fmt(r.rank) + '</div>';
+    html += '    <div class="of">out of <b>' + fmt(r.total) + '</b> possible arrangements</div>';
+    html += '  </div>';
+    html += '  <div class="total">';
+    html += '    <div class="label">Total</div>';
+    html += '    <div class="v" style="font-family:ui-monospace,monospace;font-size:14px;color:#b9c2da;margin-top:6px">' + esc(formulaOf(cnt)) + '</div>';
+    html += '  </div>';
+    html += '</div>';
+
+    html += '<div class="grid">';
+    html += '  <div class="cell"><div class="k">Alphabetical order</div><div class="v">' + esc(sorted) + '</div></div>';
+    html += '  <div class="cell"><div class="k">Letters used</div><div class="chips">' + chips + '</div></div>';
+    html += '</div>';
+
+    html += '<h2>Step-by-step working</h2>';
+    for (var i = 0; i < r.steps.length; i++) {
+      var s = r.steps[i];
+      html += '<div class="step">';
+      html += '  <div class="top"><div class="pos">Position ' + s.pos + ' → real letter <b>' + esc(s.letter) + '</b></div>';
+      html += '  <div class="add">+' + fmt(s.added) + '</div></div>';
+      if (s.blocks.length) {
+        html += '  <div class="blocks">';
+        for (var b = 0; b < s.blocks.length; b++) {
+          var bl = s.blocks[b];
+          html += '<div class="blk"><span>put <b>' + bl.letter + '</b> here → ' + bl.remaining + ' left</span>';
+          html += '<span><span class="f">' + esc(bl.formula) + '</span> = <span class="n">' + fmt(bl.count) + '</span></span></div>';
+        }
+        html += '  </div>';
+      } else {
+        html += '  <div class="none">No smaller letter left — nothing comes before it here.</div>';
+      }
+      html += '  <div class="running">Rank so far: <b>' + fmt(s.running) + '</b></div>';
+      html += '</div>';
+    }
+
+    var prev = r.rank > 1n ? kth(cnt, r.rank - 1n) : "— first arrangement —";
+    var next = r.rank < r.total ? kth(cnt, r.rank + 1n) : "— last arrangement —";
+    html += '<h2>In the dictionary</h2>';
+    html += '<div class="neigh">';
+    html += '  <div class="cell"><div class="k">Just before it</div><div class="v">' + esc(prev) + '</div></div>';
+    html += '  <div class="cell hl"><div class="k">Our word</div><div class="v">' + esc(w) + '</div></div>';
+    html += '  <div class="cell"><div class="k">Just after it</div><div class="v">' + esc(next) + '</div></div>';
+    html += '</div>';
+
+    if (r.total <= 20000n) {
+      html += '<details id="allbox"><summary>Show all ' + fmt(r.total) + ' arrangements</summary><div class="allperm" id="allperm"></div></details>';
+    }
+
+    out.innerHTML = html;
+
+    var box = document.getElementById("allbox");
+    if (box) {
+      box.addEventListener("toggle", function () {
+        if (!box.open || box.dataset.done) return;
+        box.dataset.done = "1";
+        var list = allPerms(w);
+        var frag = [];
+        for (var p = 0; p < list.length; p++) {
+          var hit = list[p] === w ? " hit" : "";
+          frag.push('<span class="p' + hit + '"><span class="i">' + (p + 1) + '</span>' + list[p] + "</span>");
+        }
+        document.getElementById("allperm").innerHTML = frag.join("");
+        var h = document.querySelector("#allperm .hit");
+        if (h && h.scrollIntoView) h.scrollIntoView({ block: "center" });
+      });
+    }
+  }
+
+  input.addEventListener("input", render);
+  document.getElementById("clear").addEventListener("click", function () {
+    input.value = "";
+    input.focus();
+    render();
+  });
+
+  input.value = "APPLE";
+  render();
+})();
+</script>
+</body>
+</html>
